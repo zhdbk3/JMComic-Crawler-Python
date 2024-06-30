@@ -135,7 +135,7 @@ class JmcomicText:
                 last_pattern = pattern[len(pattern) - 1]
                 # 缩小文本
                 for i in range(0, len(pattern) - 1):
-                    match = pattern[i].search(text)
+                    match: Match = pattern[i].search(text)
                     if match is None:
                         return None
                     text = match[0]
@@ -472,7 +472,7 @@ class JmPageTool:
         return JmFavoritePage(content, folder_list, total)
 
     @classmethod
-    def parse_api_to_search_page(cls, data: AdvancedEasyAccessDict) -> JmSearchPage:
+    def parse_api_to_search_page(cls, data: AdvancedDict) -> JmSearchPage:
         """
         model_data: {
           "search_query": "MANA",
@@ -501,7 +501,7 @@ class JmPageTool:
         return JmSearchPage(content, total)
 
     @classmethod
-    def parse_api_to_favorite_page(cls, data: AdvancedEasyAccessDict) -> JmFavoritePage:
+    def parse_api_to_favorite_page(cls, data: AdvancedDict) -> JmFavoritePage:
         """
         {
           "list": [
@@ -546,7 +546,7 @@ class JmPageTool:
 
     @classmethod
     def adapt_content(cls, content):
-        def adapt_item(item: AdvancedEasyAccessDict):
+        def adapt_item(item: AdvancedDict):
             item: dict = item.src_dict
             item.setdefault('tags', [])
             return item
@@ -673,7 +673,7 @@ class JmApiAdaptTool:
         series = data['series']
         episode_list = []
         for chapter in series:
-            chapter = AdvancedEasyAccessDict(chapter)
+            chapter = AdvancedDict(chapter)
             # photo_id, photo_index, photo_title, photo_pub_date
             episode_list.append(
                 (chapter.id, chapter.sort, chapter.name, None)
@@ -688,7 +688,7 @@ class JmApiAdaptTool:
         sort = 1
         series: list = data['series']  # series中的sort从1开始
         for chapter in series:
-            chapter = AdvancedEasyAccessDict(chapter)
+            chapter = AdvancedDict(chapter)
             if int(chapter.id) == int(data['id']):
                 sort = chapter.sort
                 break
@@ -707,7 +707,7 @@ class JmImageTool:
         如果需要改变图片的文件格式，比如 .jpg → .png，则需要指定参数 neet_convert=True.
         如果不需要改变图片的文件格式，使用 need_convert=False，可以跳过PIL解析图片，效率更高.
 
-        :param resp: HTTP响应对象
+        :param resp: JmImageResp
         :param filepath: 图片文件路径
         :param need_convert: 是否转换图片
         """
@@ -746,7 +746,7 @@ class JmImageTool:
 
         # 无需解密，直接保存
         if num == 0:
-            img_src.save(decoded_save_path)
+            cls.save_image(img_src, decoded_save_path)
             return
 
         import math

@@ -224,7 +224,7 @@ class AbstractJmClient(
 
     # noinspection PyMethodMayBeStatic
     def decode(self, url: str):
-        if not JmModuleConfig.flag_decode_url_when_logging or '/search/' not in url:
+        if not JmModuleConfig.FLAG_DECODE_URL_WHEN_LOGGING or '/search/' not in url:
             return url
 
         from urllib.parse import unquote
@@ -236,6 +236,9 @@ class JmHtmlClient(AbstractJmClient):
     client_key = 'html'
 
     func_to_cache = ['search', 'fetch_detail_entity']
+
+    API_SEARCH = '/search/photos'
+    API_CATEGORY = '/albums'
 
     def add_favorite_album(self,
                            album_id,
@@ -304,7 +307,12 @@ class JmHtmlClient(AbstractJmClient):
                main_tag: int,
                order_by: str,
                time: str,
+               category: str,
+               sub_category: Optional[str],
                ) -> JmSearchPage:
+        """
+        网页搜索API
+        """
         params = {
             'main_tag': main_tag,
             'search_query': search_query,
@@ -313,8 +321,10 @@ class JmHtmlClient(AbstractJmClient):
             't': time,
         }
 
+        url = self.build_search_url(self.API_SEARCH, category, sub_category)
+
         resp = self.get_jm_html(
-            self.append_params_to_url('/search/photos', params),
+            self.append_params_to_url(url, params),
             allow_redirects=True,
         )
 
@@ -326,11 +336,31 @@ class JmHtmlClient(AbstractJmClient):
         else:
             return JmPageTool.parse_html_to_search_page(resp.text)
 
+    @classmethod
+    def build_search_url(cls, base: str, category: str, sub_category: Optional[str]):
+        """
+        构建网页搜索/分类的URL
+
+        示例：
+        :param base: "/search/photos"
+        :param category CATEGORY_DOUJIN
+        :param sub_category SUB_DOUJIN_CG
+        :return "/search/photos/doujin/sub/CG"
+        """
+        if category == JmMagicConstants.CATEGORY_ALL:
+            return base
+
+        if sub_category is None:
+            return f'{base}/{category}'
+        else:
+            return f'{base}/{category}/sub/{sub_category}'
+
     def categories_filter(self,
                           page: int,
                           time: str,
                           category: str,
                           order_by: str,
+                          sub_category: Optional[str] = None,
                           ) -> JmCategoryPage:
         params = {
             'page': page,
@@ -338,7 +368,7 @@ class JmHtmlClient(AbstractJmClient):
             't': time,
         }
 
-        url = f'/albums/' + (category if category != JmMagicConstants.CATEGORY_ALL else '')
+        url = self.build_search_url(self.API_CATEGORY, category, sub_category)
 
         resp = self.get_jm_html(
             self.append_params_to_url(url, params),
@@ -573,7 +603,12 @@ class JmApiClient(AbstractJmClient):
                main_tag: int,
                order_by: str,
                time: str,
+               category: str,
+               sub_category: Optional[str],
                ) -> JmSearchPage:
+        """
+        移动端暂不支持 category和sub_category
+        """
         params = {
             'main_tag': main_tag,
             'search_query': search_query,
@@ -603,7 +638,11 @@ class JmApiClient(AbstractJmClient):
                           time: str,
                           category: str,
                           order_by: str,
+                          sub_category: Optional[str] = None,
                           ):
+        """
+        移动端不支持 sub_category
+        """
         # o: mv, mv_m, mv_w, mv_t
         o = f'{order_by}_{time}' if time != JmMagicConstants.TIME_ALL else order_by
 
@@ -767,7 +806,7 @@ class JmApiClient(AbstractJmClient):
         # 检查禁漫最新的版本号
         setting_ver = str(resp.model_data.version)
         # 禁漫接口的版本 > jmcomic库内置版本
-        if setting_ver > JmMagicConstants.APP_VERSION and JmModuleConfig.flag_use_version_newer_if_behind:
+        if setting_ver > JmMagicConstants.APP_VERSION and JmModuleConfig.FLAG_USE_VERSION_NEWER_IF_BEHIND:
             jm_log('api.setting', f'change APP_VERSION from [{JmMagicConstants.APP_VERSION}] to [{setting_ver}]')
             JmMagicConstants.APP_VERSION = setting_ver
 
@@ -883,7 +922,7 @@ class JmApiClient(AbstractJmClient):
             ts = time_stamp()
             token, tokenparam = JmCryptoTool.token_and_tokenparam(ts, secret=JmMagicConstants.APP_TOKEN_SECRET_2)
 
-        elif JmModuleConfig.flag_use_fix_timestamp:
+        elif JmModuleConfig.FLAG_USE_FIX_TIMESTAMP:
             ts, token, tokenparam = JmModuleConfig.get_fix_ts_token_tokenparam()
 
         else:
@@ -954,7 +993,7 @@ class JmApiClient(AbstractJmClient):
 
     def after_init(self):
         # 保证拥有cookies，因为移动端要求必须携带cookies，否则会直接跳转同一本子【禁漫娘】
-        if JmModuleConfig.flag_api_client_require_cookies:
+        if JmModuleConfig.FLAG_API_CLIENT_REQUIRE_COOKIES:
             self.ensure_have_cookies()
 
     client_init_cookies_lock = Lock()

@@ -1,4 +1,4 @@
-# jmcomic 综合使用实例
+# 综合使用实例
 
 * 基于v2.2.2+内置插件
 
@@ -20,7 +20,7 @@ create_option('myoption.yml')
 ```
 
 #### 2. 配置option，调用1的脚本即可
-```yml
+```yaml
 dir_rule: # 下载路径规则
   rule: Bd_Aid
   base_dir: D:/jmcomic

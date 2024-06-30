@@ -35,7 +35,29 @@ class JmMagicConstants:
     CATEGORY_DOUJIN_COSPLAY = 'doujin_cosplay'  # cosplay
     CATEGORY_3D = '3D'  # 3D
     CATEGORY_ENGLISH_SITE = 'english_site'  # 英文站
-    CATEGORY_JM_TEAM = '禁漫漢化組'
+
+    # 副分类
+    SUB_CHINESE = 'chinese'  # 汉化，通用副分类
+    SUB_JAPANESE = 'japanese'  # 日语，通用副分类
+
+    # 其他类（CATEGORY_ANOTHER）的副分类
+    SUB_ANOTHER_OTHER = 'other'  # 其他漫画
+    SUB_ANOTHER_3D = '3d'  # 3D
+    SUB_ANOTHER_COSPLAY = 'cosplay'  # cosplay
+
+    # 同人（SUB_CHINESE）的副分类
+    SUB_DOUJIN_CG = 'CG'  # CG
+    SUB_DOUJIN_CHINESE = SUB_CHINESE
+    SUB_DOUJIN_JAPANESE = SUB_JAPANESE
+
+    # 短篇（CATEGORY_SHORT）的副分类
+    SUB_SHORT_CHINESE = SUB_CHINESE
+    SUB_SHORT_JAPANESE = SUB_JAPANESE
+
+    # 单本（CATEGORY_SINGLE）的副分类
+    SUB_SINGLE_CHINESE = SUB_CHINESE
+    SUB_SINGLE_JAPANESE = SUB_JAPANESE
+    SUB_SINGLE_YOUTH = 'youth'
 
     # 分页大小
     PAGE_SIZE_SEARCH = 80
@@ -53,7 +75,7 @@ class JmMagicConstants:
     APP_TOKEN_SECRET = '18comicAPP'
     APP_TOKEN_SECRET_2 = '18comicAPPContent'
     APP_DATA_SECRET = '185Hcomic3PAPP7R'
-    APP_VERSION = '1.6.7'
+    APP_VERSION = '1.7.0'
     APP_HEADERS_TEMPLATE = {
         'Accept-Encoding': 'gzip',
         'user-agent': 'Mozilla/5.0 (Linux; Android 9; V1938CT Build/PQ3A.190705.11211812; wv) AppleWebKit/537.36 (KHTML, '
@@ -65,14 +87,20 @@ class JmMagicConstants:
         'accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,'
                   'application/signed-exchange;v=b3;q=0.7',
         'accept-language': 'zh-CN,zh;q=0.9',
-        'sec-ch-ua': '"Not.A/Brand";v="8", "Chromium";v="114", "Google Chrome";v="114"',
+        'cache-control': 'no-cache',
+        'dnt': '1',
+        'pragma': 'no-cache',
+        'priority': 'u=0, i',
+        'referer': 'https://18comic.vip/',
+        'sec-ch-ua': '"Chromium";v="124", "Google Chrome";v="124", "Not-A.Brand";v="99"',
         'sec-ch-ua-mobile': '?0',
         'sec-ch-ua-platform': '"Windows"',
         'sec-fetch-dest': 'document',
         'sec-fetch-mode': 'navigate',
         'sec-fetch-site': 'none',
         'sec-fetch-user': '?1',
-        'user-agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/114.0.0.0 '
+        'upgrade-insecure-requests': '1',
+        'user-agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 '
                       'Safari/537.36',
     }
 
@@ -109,14 +137,17 @@ class JmModuleConfig:
     DOMAIN_IMAGE_LIST = str_to_list('''
     cdn-msp.jmapinodeudzn.net
     cdn-msp2.jmapinodeudzn.net
+    cdn-msp2.jmapiproxy3.cc
+    cdn-msp3.jmapinodeudzn.net
 
     ''')
 
     # 移动端API域名
     DOMAIN_API_LIST = str_to_list('''
     www.jmapinodeudzn.xyz
-    www.jmapinode.vip
-    www.jmapinode.biz
+    www.cdn-eldenringproxy.xyz
+    www.cdn-eldenringproxy.me
+    www.cdn-eldenringproxy.vip
     www.jmapinode.xyz
     ''')
 
@@ -146,24 +177,28 @@ class JmModuleConfig:
     REGISTRY_EXCEPTION_LISTENER = {}
 
     # 执行log的函数
-    executor_log = default_jm_logging
+    EXECUTOR_LOG = default_jm_logging
 
     # 使用固定时间戳
-    flag_use_fix_timestamp = True
+    FLAG_USE_FIX_TIMESTAMP = True
     # 移动端Client初始化cookies
-    flag_api_client_require_cookies = True
+    FLAG_API_CLIENT_REQUIRE_COOKIES = True
     # log开关标记
-    flag_enable_jm_log = True
+    FLAG_ENABLE_JM_LOG = True
     # log时解码url
-    flag_decode_url_when_logging = True
+    FLAG_DECODE_URL_WHEN_LOGGING = True
     # 当内置的版本号落后时，使用最新的禁漫app版本号
-    flag_use_version_newer_if_behind = True
+    FLAG_USE_VERSION_NEWER_IF_BEHIND = True
 
     # 关联dir_rule的自定义字段与对应的处理函数
     # 例如:
     # Amyname -> JmModuleConfig.AFIELD_ADVICE['myname'] = lambda album: "自定义名称"
     AFIELD_ADVICE = dict()
     PFIELD_ADVICE = dict()
+
+    # 当发生 oserror: [Errno 36] File name too long 时，
+    # 把文件名限制在指定个字符以内
+    VAR_FILE_NAME_LENGTH_LIMIT = 100
 
     @classmethod
     def downloader_class(cls):
@@ -319,12 +354,12 @@ class JmModuleConfig:
     # noinspection PyUnusedLocal
     @classmethod
     def jm_log(cls, topic: str, msg: str):
-        if cls.flag_enable_jm_log is True:
-            cls.executor_log(topic, msg)
+        if cls.FLAG_ENABLE_JM_LOG is True:
+            cls.EXECUTOR_LOG(topic, msg)
 
     @classmethod
     def disable_jm_log(cls):
-        cls.flag_enable_jm_log = False
+        cls.FLAG_ENABLE_JM_LOG = False
 
     @classmethod
     def new_postman(cls, session=False, **kwargs):
@@ -347,7 +382,7 @@ class JmModuleConfig:
     DEFAULT_CLIENT_CACHE = None  # 默认关闭Client缓存。缓存的配置详见 CacheRegistry
     DEFAULT_PROXIES = ProxyBuilder.system_proxy()  # 默认使用系统代理
 
-    default_option_dict: dict = {
+    DEFAULT_OPTION_DICT: dict = {
         'log': None,
         'dir_rule': {'rule': 'Bd_Pname', 'base_dir': None},
         'download': {
@@ -387,11 +422,11 @@ class JmModuleConfig:
         """
         from copy import deepcopy
 
-        option_dict = deepcopy(cls.default_option_dict)
+        option_dict = deepcopy(cls.DEFAULT_OPTION_DICT)
 
         # log
         if option_dict['log'] is None:
-            option_dict['log'] = cls.flag_enable_jm_log
+            option_dict['log'] = cls.FLAG_ENABLE_JM_LOG
 
         # dir_rule.base_dir
         dir_rule = option_dict['dir_rule']
