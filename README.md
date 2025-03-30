@@ -111,8 +111,9 @@ jmcomic 123 --option="D:/a.yml"
 
 b. 配置环境变量 `JM_OPTION_PATH` 为option文件路径（推荐）
 
+> 请自行google配置环境变量的方式，或使用powershell命令:  `setx JM_OPTION_PATH "D:/a.yml"` 重启后生效
+
 ```sh
-# set JM_OPTION_PATH="D:/a.yml"
 jmcomic 123
 ```
 
