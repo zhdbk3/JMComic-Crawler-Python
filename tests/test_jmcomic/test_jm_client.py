@@ -17,6 +17,7 @@ class Test_Client(JmTestConfigurable):
 
     def test_search(self):
         page: JmSearchPage = self.client.search_tag('+无修正 +中文 -全彩')
+        print(f'总数: {page.total}, 分页大小: {page.page_size}，页数: {page.page_count}')
 
         if len(page) >= 1:
             for aid, ainfo in page[0:1:1]:
@@ -55,7 +56,10 @@ class Test_Client(JmTestConfigurable):
         ]
 
         for pair in ans:
-            self.assertListEqual(pair[0][0:9], pair[1][0:9])
+            left = pair[0][0:9]
+            right = pair[1][0:9]
+            for i, ans in enumerate(right):
+                self.assertEqual(JmcomicText.to_zh_cn(left[i]), JmcomicText.to_zh_cn(ans))
 
     def test_photo_sort(self):
         client = self.option.build_jm_client()

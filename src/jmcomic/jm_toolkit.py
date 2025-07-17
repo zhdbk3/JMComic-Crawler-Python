@@ -22,10 +22,11 @@ class JmcomicText:
     pattern_html_photo_sort = compile(r'var sort = (\d+);')
     pattern_html_photo_page_arr = compile(r'var page_arr = (.*?);')
 
+    pattern_html_b64_decode_content = compile(r'const html = base64DecodeUtf8\("(.*?)"\)')
     pattern_html_album_album_id = compile(r'<span class="number">.*?：JM(\d+)</span>')
     pattern_html_album_scramble_id = compile(r'var scramble_id = (\d+);')
-    pattern_html_album_name = compile(r'<h1 class="book-name" id="book-name">([\s\S]*?)</h1>')
-    pattern_html_album_episode_list = compile(r'data-album="(\d+)"[^>]*>\s*?<li.*?>\s*?第(\d+)話([\s\S]*?)<[\s\S]*?>(\d+-\d+-\d+).*?')
+    pattern_html_album_name = compile(r'id="book-name"[^>]*?>([\s\S]*?)<')
+    pattern_html_album_episode_list = compile(r'data-album="(\d+)"[^>]*>[\s\S]*?第(\d+)[话話]([\s\S]*?)<[\s\S]*?>')
     pattern_html_album_page_count = compile(r'<span class="pagecount">.*?:(\d+)</span>')
     pattern_html_album_pub_date = compile(r'>上架日期 : (.*?)</span>')
     pattern_html_album_update_date = compile(r'>更新日期 : (.*?)</span>')
@@ -47,7 +48,7 @@ class JmcomicText:
     ]
     # 作者
     pattern_html_album_authors = [
-        compile(r'作者： *<span itemprop="author" data-type="author">([\s\S]*?)</span>'),
+        compile(r'<span itemprop="author" data-type="author">([\s\S]*?)</span>'),
         pattern_html_tag_a,
     ]
     # 點擊喜歡
@@ -107,6 +108,15 @@ class JmcomicText:
         ))
 
     @classmethod
+    def parse_jm_base64_html(cls, resp_text: str) -> str:
+        from base64 import b64decode
+        html_b64 = PatternTool.match_or_default(resp_text, cls.pattern_html_b64_decode_content, None)
+        if html_b64 is None:
+            return resp_text
+        html = b64decode(html_b64).decode()
+        return html
+
+    @classmethod
     def analyse_jm_photo_html(cls, html: str) -> JmPhotoDetail:
         return cls.reflect_new_instance(
             html,
@@ -117,7 +127,7 @@ class JmcomicText:
     @classmethod
     def analyse_jm_album_html(cls, html: str) -> JmAlbumDetail:
         return cls.reflect_new_instance(
-            html,
+            cls.parse_jm_base64_html(html),
             "pattern_html_album_",
             JmModuleConfig.album_class()
         )
@@ -317,7 +327,7 @@ class JmcomicText:
     @classmethod
     def to_zh_cn(cls, s):
         import zhconv
-        return zhconv.convert(s, 'zh_cn')
+        return zhconv.convert(s, 'zh-cn')
 
     @classmethod
     def try_mkdir(cls, save_dir: str):
@@ -693,7 +703,7 @@ class JmApiAdaptTool:
             chapter = AdvancedDict(chapter)
             # photo_id, photo_index, photo_title, photo_pub_date
             episode_list.append(
-                (chapter.id, chapter.sort, chapter.name, None)
+                (chapter.id, chapter.sort, chapter.name)
             )
         fields['episode_list'] = episode_list
         for it in 'scramble_id', 'page_count', 'pub_date', 'update_date':

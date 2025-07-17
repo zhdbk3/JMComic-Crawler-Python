@@ -96,7 +96,14 @@ dir_rule:
   # 写法:
   # 1. 以'Bd'开头，表示根目录
   # 2. 文件夹每增加一层，使用 '_' 或者 '/' 区隔
-  # 3. 用Pxxx或者Ayyy指代文件夹名，意思是 JmPhotoDetail.xxx / JmAlbumDetail的.yyy。xxx和yyy可以写什么需要看源码。
+  # 3. 用Pxxx或者Ayyy指代文件夹名，意思是 JmPhotoDetail.xxx / JmAlbumDetail的.yyy。
+  # xxx和yyy可以写什么需要看源码，或通过下面代码打印出所有可用的值
+  # 
+  # ```python
+  # import jmcomic
+  # properties: dict = jmcomic.JmOption.default().new_jm_client().get_album_detail(本子id).get_properties_dict()
+  # print(properties)
+  # ```
   # 
   # 下面演示如果要使用禁漫网站的默认下载方式，该怎么写:
   # 规则: 根目录 / 本子id / 章节序号 / 图片文件
@@ -105,6 +112,9 @@ dir_rule:
 
   # 默认规则是: 根目录 / 章节标题 / 图片文件
   rule: Bd_Ptitle
+  # jmcomic v2.5.36 以后，支持使用python的f-string的语法组合文件夹名，下为示例
+  # rule: Bd / Aauthor / (JM{Aid}-{Pindex})-{Pname}
+  # {}大括号里的内容同样是写 Axxx 或 Pxxx，其他语法自行参考python f-string的语法
 ```
 
 ## 3. option插件配置项
@@ -197,7 +207,38 @@ plugins:
         # 如果level=[album], filename_rule只能写Axxx
 
         zip_dir: D:/jmcomic/zip/ # 压缩文件存放的文件夹
+
+        suffix: zip #压缩包后缀名，默认值为zip，可以指定为zip或者7z
+
+        # v2.6.0 以后，zip插件也支持dir_rule配置项，可以替代旧版本的zip_dir和filename_rule
+        # 请注意⚠ 使用此配置项会使filename_rule，zip_dir，suffix三个配置项无效，与这三个配置项同时存在时仅会使用dir_rule
+        # 示例如下:
+        # dir_rule: # 新配置项，可取代旧的zip_dir和filename_rule
+        #   base_dir: D:/jmcomic-zip
+        #   rule: 'Bd / {Atitle} / [{Pid}]-{Ptitle}.zip'  # 设置压缩文件夹规则，中间Atitle表示创建一层文件夹，名称是本子标题。[{Pid}]-{Ptitle}.zip 表示压缩文件的命名规则(需显式写出后缀名)
+        # 使用此方法指定压缩包存储路径则无需和level对应
+
         delete_original_file: true # 压缩成功后，删除所有原文件和文件夹
+        
+        # 在v2.6.0及以后版本，zip插件还支持设置密码和加密方式，使用encrypt配置项，该配置是可选的，示例如下：
+        # 1. 给压缩包设置一个指定密码
+        # encrypt:
+        #   password: 123456
+        # 2. 设置随机生成的密码。该密码会在日志中打印出来，并附着到zip的压缩文件注释里
+        # encrypt:
+        #   type: random
+        # 配置密码时，type和password二选一必填
+        
+        # 插件还支持使用7z加密，这种方式会加密压缩包文件头，只有输入了密码才能查看压缩包文件列表，隐私性最好。
+        # 使用encrypt.impl配置项开启7z格式加密，如果不配置，默认仍使用zip格式。
+        # 使用7z格式时记得把压缩包后缀名指定为7z。
+        # 示例如下:
+        # suffix: 7z
+        # encrypt:
+        #   impl: 7z
+        #   type: random # type和password二选一必填，和上面一样
+        # 需要提醒的是，7z没有压缩文件注释，因此如果设置随机密码，密码就只会存在于日志中，请注意及时保存密码。
+         
     
     # 删除重复文件插件
     # 参考 → [https://github.com/hect0x7/JMComic-Crawler-Python/issues/244]
@@ -253,20 +294,5 @@ plugins:
       kwargs:
         img_dir: D:/pdf/ # 长图存放文件夹
         filename_rule: Aname # 长图命名规则，同上
-  
-    # 请注意⚠
-    # 下方的j2p插件的功能不如img2pdf插件，不建议使用。
-    # 如有图片转pdf的需求，直接使用img2pdf即可，下面的内容请忽略。
-
-    - plugin: j2p # 图片合并插件，可以将下载下来的jpg图片合成为一个pdf插件
-      # 请注意⚠ 该插件的使用前提是，下载下来的图片是jpg图片
-      # 因此，使用该插件前，需要有如下配置:（下载图片格式转为jpg，上文有解释过此配置）
-      # download:
-      #   image:
-      #     suffix: .jpg
-      kwargs:
-        pdf_dir: D:/pdf/ # pdf存放文件夹
-        filename_rule: Pid # pdf命名规则
-        quality: 100 # pdf质量，0 - 100
   
 ```

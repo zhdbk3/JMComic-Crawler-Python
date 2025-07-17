@@ -82,25 +82,38 @@ from jmcomic import *
 # 客户端
 client = JmOption.default().new_jm_client()
 
-# 捕获jmcomic可能出现的异常
+# 捕获获取本子/章节详情时可能出现的异常
 try:
     # 请求本子实体类
     album: JmAlbumDetail = client.get_album_detail('427413')
 except MissingAlbumPhotoException as e:
     print(f'id={e.error_jmid}的本子不存在')
-    
+
 except JsonResolveFailException as e:
     print(f'解析json失败')
     # 响应对象
     resp = e.resp
     print(f'resp.text: {resp.text}, resp.status_code: {resp.status_code}')
-    
+
 except RequestRetryAllFailException as e:
     print(f'请求失败，重试次数耗尽')
-    
+
 except JmcomicException as e:
     # 捕获所有异常，用作兜底
     print(f'jmcomic遇到异常: {e}')
+
+# 多线程下载时，可能出现非当前线程下载失败，抛出异常，
+# 而JmDownloader有对应字段记录了这些线程发生的异常
+# 使用check_exception=True参数可以使downloader主动检查是否存在下载异常
+# 如果有，则当前线程会主动上抛一个PartialDownloadFailedException异常
+# 该参数主要用于主动检查部分下载失败的情况，
+# 因为非当前线程抛出的异常（比如下载章节的线程和下载图片的线程），这些线程如果抛出异常，
+# 当前线程是感知不到的，try-catch下载方法download_album不能捕获到其他线程发生的异常。
+try:
+    album, downloader = download_album(123, check_exception=True)
+except PartialDownloadFailedException as e:
+    downloader: JmDownloader = e.downloader
+    print(f'下载出现部分失败, 下载失败的章节: {downloader.download_failed_photo}, 下载失败的图片: {downloader.download_failed_image}')
 ```
 
 
@@ -113,6 +126,8 @@ client = JmOption.default().new_jm_client()
 
 # 分页查询，search_site就是禁漫网页上的【站内搜索】
 page: JmSearchPage = client.search_site(search_query='+MANA +无修正', page=1)
+print(f'结果总数: {page.total}, 分页大小: {page.page_size}，页数: {page.page_count}')
+
 # page默认的迭代方式是page.iter_id_title()，每次迭代返回 albun_id, title
 for album_id, title in page:
     print(f'[{album_id}]: {title}')
@@ -155,10 +170,10 @@ from jmcomic import *
 
 option = JmOption.default()
 client = option.new_jm_client()
-client.login('用户名', '密码') # 也可以使用login插件/配置cookies
+client.login('用户名', '密码')  # 也可以使用login插件/配置cookies
 
 # 遍历全部收藏的所有页
-for page in cl.favorite_folder_gen(): # 如果你只想获取特定收藏夹，需要添加folder_id参数
+for page in client.favorite_folder_gen():  # 如果你只想获取特定收藏夹，需要添加folder_id参数
     # 遍历每页结果
     for aid, atitle in page.iter_id_title():
         # aid: 本子的album_id
@@ -170,9 +185,9 @@ for page in cl.favorite_folder_gen(): # 如果你只想获取特定收藏夹，�
 
 # 获取特定收藏夹的单页，使用favorite_folder方法
 page = client.favorite_folder(page=1,
-                          order_by=JmMagicConstants.ORDER_BY_LATEST,
-                          folder_id='0' # 收藏夹id
-                          )
+                              order_by=JmMagicConstants.ORDER_BY_LATEST,
+                              folder_id='0'  # 收藏夹id
+                              )
 ```
 
 ## 分类 / 排行榜
